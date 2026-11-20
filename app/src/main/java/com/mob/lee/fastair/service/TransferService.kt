@@ -56,7 +56,13 @@ abstract class TransferService : AppService(), SocketService.SocketStateListener
     }
     fun write(writer: Writer) {
         launch(Dispatchers.IO) {
-            mSocket?.write(writer)
+            val accepted = mSocket?.write(writer) ?: false
+            if (!accepted) {
+                // The task can never reach the peer, so close its stream and let
+                // the record be reported as failed instead of hanging in transit.
+                Log.w(TAG, "Write task rejected, cancelling it.")
+                writer.cancel(IllegalStateException("not connected"))
+            }
         }
     }
 

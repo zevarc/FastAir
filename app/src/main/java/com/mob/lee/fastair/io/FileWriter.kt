@@ -17,9 +17,9 @@ class FileWriter(val record: Record, val listener: ProgressListener? = null) : W
         ByteArray(size)
     }
 
-    val stream: FileInputStream by lazy {
-        FileInputStream(record.path)
-    }
+    private val streamHolder = lazy { FileInputStream(record.path) }
+
+    val stream: FileInputStream by streamHolder
 
 
     override fun hasNext(): Boolean {
@@ -77,5 +77,30 @@ class FileWriter(val record: Record, val listener: ProgressListener? = null) : W
             e.printStackTrace()
         }
         return ProtocolByte.empty()
+    }
+
+    /**
+     * 传输被中断：关闭文件句柄并把记录标成失败，避免它一直停在
+     * [Record.STATE_TRANSPORT]——那样既不会被重试，也不会显示为失败。
+     */
+    override fun cancel(cause: Exception) {
+        if (state == -1) {
+            return
+        }
+        state = -1
+        record.state = Record.STATE_FAILED
+        try {
+            listener?.invoke(FailedState(record, cause))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            // Opening the file only to close it would leak a descriptor for nothing.
+            if (streamHolder.isInitialized()) {
+                stream.close()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

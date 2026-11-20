@@ -5,9 +5,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.Closeable
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -22,10 +26,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SocketService {
 
     /**
-     *发送消息
-     * @see write
+     * 待发送任务队列。只装 [Writer] 对象，不装字节：帧是 [handleWrite] 逐帧惰性
+     * 驱动的，堆内存占用不随文件大小增长。
+     *
+     * 容量有界，满了让 [write] 挂起，把背压传回调用方；否则一次批量排队会在
+     * 对端不读时无限堆积。
      */
-    private val writers = Channel<Writer>(Channel.UNLIMITED)
+    private val writers = Channel<Writer>(WRITE_QUEUE_CAPACITY)
 
     /**
      * 指示当前连接是否已经开启
@@ -193,6 +200,10 @@ class SocketService {
 
         readJob.join()
         perConnection.cancelAndJoin()
+        // Anything still queued belongs to this connection and can never be sent
+        // now. Letting it survive into the next connection would put bare body
+        // frames on the wire, and the peer would splice them into a file.
+        discardPendingWriters()
         closeQuietly(c)
         if (channel === c) {
             channel = null
@@ -201,10 +212,27 @@ class SocketService {
     }
 
     /**
-     * 添加写入数据的监听
+     * 提交一个写任务。
+     *
+     * 队列满时挂起等待，把写压力传回调用方，避免无限缓冲；对端长时间不消费
+     * （超过 [WRITE_STALL_TIMEOUT_MS]）则放弃并返回 false。
+     *
+     * @return false 表示这批数据确定无法送达，调用方应自行收尾
+     *         （关闭流、把记录标记为失败），不能指望重连后补发。
      */
-    suspend fun write(writer: Writer) {
-        writers.send(writer)
+    suspend fun write(writer: Writer): Boolean {
+        if (!running || closed.get() || !isConnected) {
+            return false
+        }
+        val accepted = withTimeoutOrNull(WRITE_STALL_TIMEOUT_MS) {
+            writers.send(writer)
+            true
+        }
+        if (true != accepted) {
+            Log.w(TAG, "Write queue stayed full for ${WRITE_STALL_TIMEOUT_MS}ms, dropping task.")
+            return false
+        }
+        return true
     }
 
     /**
@@ -217,6 +245,8 @@ class SocketService {
         running = false
         state = ConnectionState.CLOSED
         writers.close()
+        // Nobody will drain the queue any more; release what is left in it.
+        discardPendingWriters()
         closeQuietly(channel)
         channel = null
         closeQuietly(server)
@@ -283,7 +313,7 @@ class SocketService {
     }
 
     /**
-     * 发送数据
+     * 发送数据。帧是逐帧惰性从 [Writer] 拉取的，堆占用不随文件大小增长。
      */
     private suspend fun handleWrite(c: SocketChannel) {
         Log.i(TAG, "Start handle write.")
@@ -294,9 +324,20 @@ class SocketService {
                 Log.i(TAG, "Write loop stopped: ${e.message}")
                 return
             }
+            // The connection may have been replaced while this task sat in the
+            // queue; sending it now would corrupt the new peer's stream.
+            if (!running || channel !== c) {
+                Log.i(TAG, "Discarding queued writer for a stale connection.")
+                notifyCancelled(c, writer, IllegalStateException("connection no longer active"))
+                continue
+            }
             try {
                 listeners.forEach { it.onWriteStart(c, writer) }
                 for (d in writer) {
+                    // A peer that closed gracefully keeps accepting bytes into the
+                    // socket buffer, so a blocking write would never notice the
+                    // cancellation that tears this connection down.
+                    currentCoroutineContext().ensureActive()
                     val bytes = d.bytes
                     while (bytes.hasRemaining()) {
                         c.write(bytes)
@@ -304,12 +345,41 @@ class SocketService {
                 }
                 listeners.forEach { it.onWriteFinished(c, writer) }
             } catch (e: Exception) {
-                Log.e(TAG, "Write exception: ${e.message}")
+                // Also reached when the connection is being torn down: a peer that
+                // closed gracefully keeps accepting into its socket buffer, so the
+                // blocking write only ends when ensureActive() throws above.
+                if (e !is CancellationException) {
+                    Log.e(TAG, "Write exception: ${e.message}")
+                }
                 listeners.forEach { it.onWriteError(c, e, writer) }
+                writer.cancel(e)
                 // Unblock the read loop so the connection is torn down once.
                 closeQuietly(c)
                 return
             }
+        }
+    }
+
+    /**
+     * 把队列里剩余的任务逐个作废，让它们释放持有的资源并标记为失败。
+     * 不清理的话，一个被中断的发送会一直停在传输中状态。
+     */
+    private fun discardPendingWriters() {
+        while (true) {
+            val writer = writers.tryReceive().getOrNull() ?: break
+            notifyCancelled(channel, writer, IllegalStateException("connection lost before the task was sent"))
+        }
+    }
+
+    private fun notifyCancelled(c: SocketChannel?, writer: Writer, cause: Exception) {
+        val target = c
+        if (null != target) {
+            listeners.forEach { it.onWriteError(target, cause, writer) }
+        }
+        try {
+            writer.cancel(cause)
+        } catch (e: Exception) {
+            Log.e(TAG, "Writer cancel failed: ${e.message}")
         }
     }
 
@@ -328,6 +398,9 @@ class SocketService {
                 closeQuietly(c)
                 return
             }
+            // Heartbeats must never take the slot a real task is waiting for, so
+            // they stay out of the queued path entirely: on a full queue this
+            // round is simply skipped and the next one tries again.
             writers.trySend(HeartbeatWriter())
         }
     }
@@ -399,6 +472,15 @@ class SocketService {
 
         /** 单个协议帧的上限，防止错误长度导致巨额分配 */
         const val MAX_FRAME_BYTES = 8 * 1024 * 1024
+
+        /**
+         * 待发送任务队列容量。满后 [write] 挂起，把背压传回调用方。
+         * 队列只装 Writer 对象，不装字节，所以这个数字很小就够。
+         */
+        const val WRITE_QUEUE_CAPACITY = 32
+
+        /** 队列持续满这么久就放弃该任务，避免调用方永久挂起 */
+        const val WRITE_STALL_TIMEOUT_MS = HEARTBEAT_TIMEOUT_MS
 
         /**
          * 第[attempt]次重试前应等待的毫秒数。从[BASE_BACKOFF_MS]起每次翻倍，
