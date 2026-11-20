@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/material_blue_grey_50"
+    android:background="@color/m3_surface"
     android:orientation="vertical">
 
     <LinearLayout
@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/colorGrid"
+        android:background="@color/m3_surface_container"
         android:orientation="horizontal"
         android:padding="@dimen/dp8">
 
@@ -23,7 +23,7 @@
             android:layout_weight="1"
             android:inputType="textMultiLine"
             android:background="@drawable/selector_chat_input_bg"
-            android:textColor="@color/colorPrimaryText"
+            android:textColor="@color/m3_on_surface"
             android:textSize="@dimen/sp16" />
 
         <TextView
@@ -36,7 +36,7 @@
             android:background="@drawable/selector_chat_send_bg"
             android:enabled="false"
             android:text="@string/send"
-            android:textColor="@android:color/white"
+            android:textColor="@color/m3_on_primary"
             android:textSize="@dimen/sp16" />
     </LinearLayout>
 

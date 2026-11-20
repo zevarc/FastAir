@@ -10,7 +10,7 @@
         android:id="@+id/item_chat_send_icon"
         android:layout_width="@dimen/dp48"
         android:layout_height="@dimen/dp48"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_chat_send_icon"
         android:layout_alignParentRight="true"/>
 
@@ -20,8 +20,8 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/dp32"
         android:layout_marginRight="@dimen/dp8"
-        android:background="@drawable/ic_chat_send_bg"
+        android:background="@drawable/bq_chat_send"
         android:textSize="@dimen/sp14"
-        android:textColor="@android:color/white"
+        android:textColor="@color/m3_on_primary"
         android:layout_toLeftOf="@id/item_chat_send_icon"/>
 </RelativeLayout>

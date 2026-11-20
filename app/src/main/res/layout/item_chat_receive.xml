@@ -11,7 +11,7 @@
         android:id="@+id/item_chat_receive_icon"
         android:layout_width="@dimen/dp48"
         android:layout_height="@dimen/dp48"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_chat_receive_icon"/>
 
     <TextView
@@ -20,7 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="@dimen/dp32"
         android:layout_marginLeft="@dimen/dp8"
-        android:background="@drawable/ic_chat_receive_bg"
-        android:textSize="14sp"
-        android:textColor="@color/colorPrimaryText"/>
+        android:background="@drawable/bq_chat_receive"
+        android:textSize="@dimen/sp14"
+        android:textColor="@color/m3_on_surface"/>
 </LinearLayout>

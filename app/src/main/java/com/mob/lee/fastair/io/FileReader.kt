@@ -21,7 +21,8 @@ class FileReader(val context: Context, var listener: ProgressListener? = null) :
                 alreadyFinished = 0
                 startTime = System.currentTimeMillis()
                 if (0L == record?.size) {
-                    receiveOver()
+                    // Empty file: no body payload follows, finish as soon as a name arrives.
+                    // Keep `record` around so the W packet can still set a valid path.
                 }
             }
 
@@ -43,8 +44,11 @@ class FileReader(val context: Context, var listener: ProgressListener? = null) :
             }
 
             else -> {
-                val buffer=data.bytes()
-                stream?.write(buffer.array(),buffer.position(),buffer.limit())
+                val buffer = data.bytes()
+                // `bytes()` is a view sliced at the 5-byte protocol header.
+                // The underlying array still holds the header first, so writes
+                // must start at buffer.arrayOffset() + buffer.position().
+                stream?.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining())
                 alreadyFinished += data.getContentLength()
                 record?.apply {
                     duration = System.currentTimeMillis() - startTime
@@ -59,9 +63,18 @@ class FileReader(val context: Context, var listener: ProgressListener? = null) :
             record?.let { r ->
                 stream?.close()
 
+                // Verify the received bytes match the size the sender announced.
+                val complete = r.size == alreadyFinished
+                if (!complete && r.size != 0L) {
+                    r.state = Record.STATE_FAILED
+                    listener?.invoke(FailedState(r, IllegalStateException(
+                        "Incomplete transfer: expected ${r.size} bytes, got $alreadyFinished")))
+                    return
+                }
+
                 r.duration = System.currentTimeMillis() - startTime
-                r.state=Record.STATE_SUCCESS
-                listener?.invoke(SuccessState(r, true, speed(r.size,r.duration)))
+                r.state = Record.STATE_SUCCESS
+                listener?.invoke(SuccessState(r, true, speed(r.size, r.duration)))
             }
         } catch (e: Exception) {
             e.printStackTrace()

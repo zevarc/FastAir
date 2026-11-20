@@ -65,7 +65,7 @@ abstract class AppFragment : Fragment() {
         appActivity.setSupportActionBar(toolbar)
         if (canReturn) {
             appActivity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            toolbar?.setNavigationOnClickListener { mParent?.onBackPressed() }
+            toolbar?.setNavigationOnClickListener { mParent?.onBackPressedDispatcher?.onBackPressed() }
         }
     }
 

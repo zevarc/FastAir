@@ -49,3 +49,15 @@ fun Long.formatDate(parttern:String="MM/dd/yyyy HH:mm"):String{
 fun Long.formatSize(context:Context):String{
     return Formatter.formatFileSize(context,this)
 }
+
+/**
+ * Format a byte-per-second rate so it stays readable across a wide range:
+ * B/s for small transfers up to GB/s for large ones. `formatSize` already
+ * adapts the unit, so reuse it instead of hard-coding MB/s.
+ */
+fun Long.formatSpeed(context: Context): String {
+    if (this <= 0L) {
+        return "0 B"
+    }
+    return Formatter.formatFileSize(context, this)
+}

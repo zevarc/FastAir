@@ -41,7 +41,7 @@ class PathPickFragment : AppFragment() {
             viewModel.updatePath(mParent, pos = 0)
         } else {
             mParent?.errorToast(R.string.storage_not_ready)
-            mParent?.onBackPressed()
+            mParent?.onBackPressedDispatcher?.onBackPressed()
         }
 
         pathPickTab?.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {

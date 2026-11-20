@@ -29,6 +29,8 @@ class FileService : TransferService(), ProgressListener {
     var mListener: ProgressListener? = null
     private var lastId = 0L
     private var mLastDate=0L
+    private var lastTransmitTime = 0L
+    private var lastTransmitBytes = 0L
     private val mFileReader by lazy { FileReader(this, this) }
 
     private val database by lazy {
@@ -60,6 +62,10 @@ class FileService : TransferService(), ProgressListener {
             setContentText(state.record.name)
         }
         mLastDate=System.currentTimeMillis()
+        // A new file restarts the byte count, so the previous sample must be
+        // dropped or the first instantaneous speed comes out negative.
+        lastTransmitTime = 0L
+        lastTransmitBytes = 0L
         Log.i(TAG, "New File start state = ${state.record}")
 
         launch(Dispatchers.Main) {
@@ -76,8 +82,23 @@ class FileService : TransferService(), ProgressListener {
             }
             mLastDate=System.currentTimeMillis()
         }
-        launch(Dispatchers.Main) {
-            mListener?.invoke(state)
+        // Throttle UI progress callbacks so a large transfer (a notify per 9 KB chunk)
+        // does not flood the RecyclerView on the main thread and cause ANRs.
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastTransmitTime
+        if (elapsed >= PROGRESS_THROTTLE_MS) {
+            val speedBytesPerSec = if (elapsed > 0L && lastTransmitTime > 0L) {
+                (state.alreadyTransmited - lastTransmitBytes) * 1000L / elapsed
+            } else {
+                0L
+            }
+            lastTransmitTime = now
+            lastTransmitBytes = state.alreadyTransmited
+            val throttled = TransmitState(
+                state.alreadyTransmited, state.duration, state.record, speedBytesPerSec)
+            launch(Dispatchers.Main) {
+                mListener?.invoke(throttled)
+            }
         }
     }
 
@@ -138,5 +159,7 @@ class FileService : TransferService(), ProgressListener {
 
     companion object {
         const val TAG = "FileTransfer"
+        /** Minimum interval between UI progress callbacks, in milliseconds. */
+        const val PROGRESS_THROTTLE_MS = 300L
     }
 }

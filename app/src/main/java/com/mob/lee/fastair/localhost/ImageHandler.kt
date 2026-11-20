@@ -42,6 +42,7 @@ class ImageHandler(val context: Context) : Handler {
         return ResourceResponse({ FileInputStream(path) }, PNG)
     }
 
+    @Suppress("DEPRECATION")
     fun fetchThumb(id: Long, path: String, size: Size): Bitmap {
         return if (Build.VERSION.SDK_INT >= 29) {
             ThumbnailUtils.createImageThumbnail(File(path), size, null)

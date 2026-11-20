@@ -7,9 +7,9 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/Base.ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:background="@color/m3_surface">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -22,6 +22,9 @@
             android:layout_height="wrap_content"
             app:layout_collapseMode="parallax"
             app:layout_scrollFlags="scroll|enterAlways"
+            app:tabIndicatorColor="@color/m3_tertiary"
+            app:tabSelectedTextColor="@color/m3_on_surface"
+            app:tabTextColor="@color/m3_on_surface_variant"
             app:tabMode="scrollable" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -43,7 +46,8 @@
             android:layout_height="match_parent"
             android:layout_gravity="start"
             app:menu="@menu/menu_navigation"
-            app:itemIconTint="@color/colorPrimary"/>
+            app:itemIconTint="@color/m3_on_surface_variant"
+            app:itemTextColor="@color/m3_on_surface"/>
 
     </androidx.drawerlayout.widget.DrawerLayout>
 
@@ -65,7 +69,7 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/dp56"
         android:layout_gravity="bottom"
-        android:background="@color/colorPrimary"
+        android:background="@color/m3_surface_container"
         app:layout_behavior="@string/dropbehavior"
         android:clickable="true"
         android:focusable="true">

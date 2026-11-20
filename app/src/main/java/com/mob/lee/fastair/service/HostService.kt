@@ -8,6 +8,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.mob.lee.fastair.R
+import com.mob.lee.fastair.base.WifiLocks
 import com.mob.lee.fastair.io.http.Http
 import com.mob.lee.fastair.io.socket.ConnectListener
 import com.mob.lee.fastair.localhost.*
@@ -65,6 +66,7 @@ class HostService() : Service(), CoroutineScope {
     }
 
     fun start(port:Int){
+        WifiLocks.acquire(this)
         mHost=Http(this).apply {
             mListener=object:ConnectListener(){
                 override fun onStart() {
@@ -91,16 +93,18 @@ class HostService() : Service(), CoroutineScope {
     }
 
     fun stop(){
+        if (null == mHost) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
         mHost?.run {
             stop()
             mStatus.value=false
         }
         mHost=null
-        if(Build.VERSION.SDK_INT>=24) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        }else{
-            stopForeground(true)
-        }
+        WifiLocks.release()
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 

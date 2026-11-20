@@ -31,6 +31,8 @@
     <string name="transfer_success">Transferência de arquivo bem-sucedida</string>
     <string name="remove_group_error">Ocorreu um erro ao remover do grupo</string>
     <string name="connect_success">Parabéns, a conexão foi estabelecida!</string>
+    <string name="connecting">Conectando&#8230;</string>
+    <string name="connect_timeout">A conexão expirou, tente novamente</string>
     <string name="auto_connect_success">Dispositivo recentemente conectado foi automaticamente reconectado!</string>
     <string name="failed_to_open">Falha ao abrir, não foi encontrado nenhum app adequado para abrir este arquivo</string>
     <string name="p2p_unsupport_error">Desculpe, este dispositivo não tem suporte aos serviços P2P via Wi-Fi ou serviço não está disponível no momento!</string>
@@ -42,6 +44,7 @@
     <string name="wram_tips">Dica</string>
     <string name="no_application_find">Não foi encontrado nenhum app adequado para abrir o arquivo</string>
     <string name="no_permission_to_scan">A permissão é necessária para procurar no dispositivo as informações do arquivo, por favor, permita-a para utilizá-lo, isto não capturará nenhuma informação privada sensível!</string>
+    <string name="no_file_to_send">Nenhum arquivo foi anexado a este compartilhamento</string>
     <string name="choose_download_path">Escolha a pasta de download</string>
     <string name="select_nothing">Nenhum arquivo selecionado, o que você quer excluir?</string>
     <string name="discover_error">Ou o Wi-Fi está desligado ou o dispositivo não tem suporte às conexões via Wi-Fi Direto</string>
@@ -53,7 +56,6 @@
     <string name="storage_not_ready">O armazenamento do dispositivo não está pronto</string>
     <string name="server_runing">O host local está em execução</string>
     <string name="server_stoped">O host local parou</string>
-    <string name="current_device_info">Nome do dispositivo atual = %1$s,status = %2$s</string>
     <string name="notification_was_denied">As notificações são rejeitadas e o status da transferência não é exibido na caixa de notificação.</string>
 
     <string name="copy_content">Copiar ao Clipboard</string>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 roles for dark mode, generated from brand seed #2397f3. -->
+    <color name="m3_primary">#9ECAFF</color>
+    <color name="m3_on_primary">#003258</color>
+    <color name="m3_primary_container">#00497C</color>
+    <color name="m3_on_primary_container">#D1E4FF</color>
+    <color name="m3_secondary">#BAC7DB</color>
+    <color name="m3_on_secondary">#253140</color>
+    <color name="m3_secondary_container">#3B4858</color>
+    <color name="m3_on_secondary_container">#D6E3F7</color>
+    <color name="m3_tertiary">#D6BEE5</color>
+    <color name="m3_on_tertiary">#3B2948</color>
+    <color name="m3_tertiary_container">#523F5F</color>
+    <color name="m3_on_tertiary_container">#F2DAFF</color>
+    <color name="m3_error">#FFB4AB</color>
+    <color name="m3_on_error">#690005</color>
+    <color name="m3_error_container">#93000A</color>
+    <color name="m3_on_error_container">#FFDAD6</color>
+    <color name="m3_background">#1A1C1E</color>
+    <color name="m3_on_background">#E2E2E6</color>
+    <color name="m3_surface">#1A1C1E</color>
+    <color name="m3_on_surface">#E2E2E6</color>
+    <color name="m3_surface_variant">#42474E</color>
+    <color name="m3_on_surface_variant">#C3C7CF</color>
+    <color name="m3_outline">#8D9199</color>
+    <color name="m3_outline_variant">#42474E</color>
+    <color name="m3_inverse_surface">#E2E2E6</color>
+    <color name="m3_inverse_on_surface">#2F3033</color>
+    <color name="m3_inverse_primary">#0061A3</color>
+    <color name="m3_scrim">#000000</color>
+    <color name="m3_surface_dim">#121316</color>
+    <color name="m3_surface_bright">#38393C</color>
+    <color name="m3_surface_container_lowest">#0D0E11</color>
+    <color name="m3_surface_container_low">#1A1C1E</color>
+    <color name="m3_surface_container">#1E2022</color>
+    <color name="m3_surface_container_high">#282A2D</color>
+    <color name="m3_surface_container_highest">#333538</color>
+    <color name="m3_ripple">#33FFFFFF</color>
+</resources>

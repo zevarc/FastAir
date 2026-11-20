@@ -31,6 +31,8 @@
     <string name="transfer_success">File transfer success</string>
     <string name="remove_group_error">An error occurred in the group removal</string>
     <string name="connect_success">Congrats, the connection was established!</string>
+    <string name="connecting">Connecting&#8230;</string>
+    <string name="connect_timeout">Connection timed out, please try again</string>
     <string name="auto_connect_success">Recently connected device was automatically connected!</string>
     <string name="failed_to_open">Failed to open, no suitable app was found to handle this file</string>
     <string name="p2p_unsupport_error">Sorry, this device does not support P2P Wi-Fi services or it is not available at the moment!</string>
@@ -42,6 +44,7 @@
     <string name="wram_tips">Hint</string>
     <string name="no_application_find">No suitable app was found to open the file</string>
     <string name="no_permission_to_scan">The permission is required in order to scan the device for the file information, please allow it in order to use it, this will not capture any of your sensitive private information!</string>
+    <string name="no_file_to_send">No file was attached to this share</string>
     <string name="choose_download_path">Choose download directory</string>
     <string name="select_nothing">No files selected yet, not sure what to delete</string>
     <string name="discover_error">Either Wi-Fi is turned off or the device does not support connections via Wi-Fi Direct</string>
@@ -53,7 +56,6 @@
     <string name="storage_not_ready">Device storage is not ready</string>
     <string name="server_runing">The local host is running</string>
     <string name="server_stoped">The local host has stopped</string>
-    <string name="current_device_info">Current device name = %1$s,status = %2$s</string>
     <string name="notification_was_denied">Notifications are rejected and no transfer status is visible on the notification drawer</string>
 
     <string name="copy_content">Copy to clipboard</string>

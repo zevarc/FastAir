@@ -7,6 +7,8 @@ import android.os.IBinder
 import android.util.Log
 import com.mob.lee.fastair.R
 import com.mob.lee.fastair.base.AppService
+import com.mob.lee.fastair.base.WifiLocks
+import com.mob.lee.fastair.io.ConnectionState
 import com.mob.lee.fastair.io.ProtocolByte
 import com.mob.lee.fastair.io.SocketService
 import com.mob.lee.fastair.io.Writer
@@ -31,7 +33,8 @@ abstract class TransferService : AppService(), SocketService.SocketStateListener
         mSocket?.let { doAnotherWork(intent) } ?: let {
             val (host, isHost) = DeviceViewModel.unBundle(intent?.extras)
             Log.i(TAG, "Start connect with host = $host, isHost = $isHost")
-            mSocket = SocketService(true).apply {
+            WifiLocks.acquire(this)
+            mSocket = SocketService().apply {
                 addListener(this@TransferService)
                 launch(Dispatchers.IO) {
                     open(this, port, if (isHost) null else host)
@@ -46,6 +49,10 @@ abstract class TransferService : AppService(), SocketService.SocketStateListener
         Log.i(TAG, "Transfer service has destroyed.")
         mSocket?.removeListener(this)
         mSocket?.close()
+        if (null != mSocket) {
+            WifiLocks.release()
+            mSocket = null
+        }
     }
     fun write(writer: Writer) {
         launch(Dispatchers.IO) {
@@ -73,12 +80,18 @@ abstract class TransferService : AppService(), SocketService.SocketStateListener
     }
 
     override fun onDisconnected(exception: Exception?) {
-        if (Build.VERSION.SDK_INT >= 24) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            stopForeground(true)
-        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
         mSocket?.removeListener(this)
+    }
+
+    override fun onStateChanged(state: ConnectionState) {
+        when (state) {
+            ConnectionState.RECONNECTING ->
+                Log.w(TAG, "Connection lost, reconnecting.")
+            ConnectionState.CONNECTED ->
+                Log.i(TAG, "Connection established.")
+            else -> {}
+        }
     }
 
     override fun onReadStart(channel: SocketChannel) {

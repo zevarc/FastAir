@@ -9,9 +9,11 @@ import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.LayerDrawable
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 import android.text.TextUtils
 import android.util.Size
+import androidx.annotation.RequiresApi
 import java.io.File
 
 class Decoder {
@@ -44,29 +46,40 @@ class Decoder {
             val manager = context.packageManager
             val info = manager.getPackageArchiveInfo(path, PackageManager.GET_ACTIVITIES)
             if (null != info) {
-                val applicationInfo = info.applicationInfo
+                val applicationInfo = info.applicationInfo ?: return decodeOther(path, size)
                 applicationInfo.sourceDir = path
                 applicationInfo.publicSourceDir = path
-                val drawable = applicationInfo?.loadIcon(manager)
+                val drawable = applicationInfo.loadIcon(manager)
                 return when(drawable){
 
                     is BitmapDrawable ->drawable.bitmap
 
-                    is AdaptiveIconDrawable ->{
-                        val foreground=drawable.foreground
-                        val background=drawable.background
-                        val layerDrawable= LayerDrawable(arrayOf(background, foreground))
-                        val bitmap = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
-                        val canvas = Canvas(bitmap)
-                        layerDrawable.setBounds(0,0,bitmap.width,bitmap.height)
-                        layerDrawable.draw(canvas)
-                        bitmap
+                    else -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                        drawable is AdaptiveIconDrawable) {
+                        adaptiveIcon(drawable)
+                    } else {
+                        decodeOther(path, size)
                     }
-
-                    else-> decodeOther(path,size)
                 }
             }
             return decodeOther(path, size)
+        }
+
+        /**
+         * Adaptive icons only exist from API 26; checking the type against a
+         * missing class would throw on 24 and 25, so the branch is guarded here.
+         */
+        @RequiresApi(Build.VERSION_CODES.O)
+        private fun adaptiveIcon(drawable: AdaptiveIconDrawable): Bitmap {
+            val background = drawable.background
+            val foreground = drawable.foreground
+            val layerDrawable = LayerDrawable(arrayOf(background, foreground))
+            val bitmap = Bitmap.createBitmap(
+                drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            layerDrawable.setBounds(0, 0, bitmap.width, bitmap.height)
+            layerDrawable.draw(canvas)
+            return bitmap
         }
 
         fun decodePic(path: String, size: Size): Bitmap? {
@@ -75,6 +88,7 @@ class Decoder {
             return decode(path, sample)
         }
 
+        @Suppress("DEPRECATION")
         fun decodeVideo(context: Context,path: String, size: Size): Bitmap? {
             val resolver = context.contentResolver
             val cursor = resolver.query(

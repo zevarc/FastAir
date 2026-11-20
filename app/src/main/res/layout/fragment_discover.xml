@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    <com.mob.lee.fastair.view.DiscoverView
-        android:id="@+id/discoverView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/device_status"
         android:paddingLeft="@dimen/dp16"
         android:paddingRight="@dimen/dp16"
-        android:paddingTop="@dimen/dp4"
-        android:paddingBottom="@dimen/dp4"
+        android:paddingTop="@dimen/dp8"
+        android:paddingBottom="@dimen/dp8"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/color_red"
-        android:textColor="@android:color/white"/>
-</FrameLayout>
+        android:background="@color/m3_surface_variant"
+        android:textColor="@color/m3_on_surface_variant"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/deviceList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/dp16"
+        android:scrollbars="vertical" />
+</LinearLayout>

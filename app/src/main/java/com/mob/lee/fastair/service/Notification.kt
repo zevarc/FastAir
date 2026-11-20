@@ -5,6 +5,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.mob.lee.fastair.ContainerActivity
 import com.mob.lee.fastair.R
@@ -33,7 +34,7 @@ class Notification {
         fun Context.easyNotify(
             channelId: String,
             code: Int,
-            builder: Notification.Builder.() -> Unit
+            builder: NotificationCompat.Builder.() -> Unit
         ): Notification {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             val intent = PendingIntent.getActivity(
@@ -41,18 +42,12 @@ class Notification {
                 Intent(this, ContainerActivity::class.java),
                 if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
             )
-            val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Notification.Builder(this, channelId)
-            } else {
-                Notification.Builder(this)
-            }
+            val b = NotificationCompat.Builder(this, channelId)
             b.setSmallIcon(R.drawable.ic_launcher_foreground)
-            b.setColor(ContextCompat.getColor(this, R.color.colorAccent))
+            b.setColor(ContextCompat.getColor(this, R.color.m3_primary))
             b.setContentIntent(intent)
             b.setAutoCancel(true)
-            if(Build.VERSION.SDK_INT>=26) {
-                b.setTimeoutAfter(5 * 1000L)
-            }
+            b.setTimeoutAfter(5 * 1000L)
 
             builder(b)
             val notification = b.build()
@@ -64,7 +59,7 @@ class Notification {
         fun Service.foreground(
             channelId: String,
             code: Int,
-            builder: Notification.Builder.() -> Unit
+            builder: NotificationCompat.Builder.() -> Unit
         ) {
             easyNotify(channelId, code, builder).let {
                 startForeground(code, it)

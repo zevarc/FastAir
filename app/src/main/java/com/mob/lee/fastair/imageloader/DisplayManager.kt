@@ -2,6 +2,7 @@ package com.mob.lee.fastair.imageloader
 
 import android.graphics.Bitmap
 import android.util.LruCache
+import android.util.Size
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -27,14 +28,21 @@ object DisplayManager {
             return
         }
 
+        // Track the request on the view so a recycled holder's stale decode is ignored.
         view.tag = path
         val activity = view.context as AppCompatActivity
         activity.lifecycleScope.async(Dispatchers.IO) {
             val dimension = DimensionObserver(this, view)
             val size = dimension.receive()
+            // A detached view can yield 0x0; decode a small fallback instead of crashing.
+            val safeSize = if (size.width > 0 && size.height > 0) size else Size(128, 128)
             val p = view.tag as String
-            val bitmap = Decoder.decode(activity, p, size)
-            bitmap?.let { b->
+            val bitmap = try {
+                Decoder.decode(activity, p, safeSize)
+            } catch (e: Exception) {
+                null
+            }
+            bitmap?.let { b ->
                 mCache.put(p, b)
                 withContext(Dispatchers.Main) {
                     if (view.tag == path) {

@@ -9,6 +9,7 @@ import com.mob.lee.fastair.imageloader.DisplayManager
 import com.mob.lee.fastair.io.state.*
 import com.mob.lee.fastair.model.Record
 import com.mob.lee.fastair.model.formatDate
+import com.mob.lee.fastair.model.formatSpeed
 import com.mob.lee.fastair.utils.dialog
 import com.mob.lee.fastair.utils.openFile
 import com.mob.lee.fastair.view.CircleProgress
@@ -29,13 +30,20 @@ class RecordAdapter(val action: (Record) -> Unit) : AppListAdapter<History>(R.la
         when (state) {
             is TransmitState -> {
                 progress.progress(state.percentage()*100)
-                holder.text(R.id.item_history_speed, "${speed(state.alreadyTransmited,state.duration)}MB/S")
+                val context = holder.itemView.context
+                val bytesPerSec = if (state.speedBytesPerSec > 0L) {
+                    state.speedBytesPerSec
+                } else {
+                    // Fall back to the cumulative average if no instantaneous value was reported.
+                    if (0L == state.duration) 0L else state.alreadyTransmited * 1000L / state.duration
+                }
+                holder.text(R.id.item_history_speed, "${bytesPerSec.formatSpeed(context)}/s")
             }
 
             is SuccessState -> {
                 progress.updateState(CircleProgress.SUCCESS)
                 if(state.needShowSpeed()) {
-                    holder.text(R.id.item_history_speed, "${state.speed}MB/S")
+                    holder.text(R.id.item_history_speed, "${(state.speed * 1024F * 1024F).toLong().formatSpeed(holder.itemView.context)}/s")
                 }
             }
 

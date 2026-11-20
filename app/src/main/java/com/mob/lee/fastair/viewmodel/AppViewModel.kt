@@ -150,7 +150,7 @@ open class AppViewModel : ViewModel() {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
         val uri = Uri.fromParts("package", fragment.context?.packageName, null)
         intent.data = uri
-        fragment.startActivityForResult(intent, 123)
+        fragment.startActivity(intent)
     }
 
     /**

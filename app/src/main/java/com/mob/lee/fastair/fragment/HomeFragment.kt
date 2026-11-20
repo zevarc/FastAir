@@ -93,9 +93,9 @@ class HomeFragment : AppFragment(), NavigationView.OnNavigationItemSelectedListe
 
         mViewModel.hasSelectedLiveData.observe {
             val value = if (true == it) {
-                R.drawable.ic_action_file_upload to R.color.color_red
+                R.drawable.ic_action_file_upload to R.color.m3_error_container
             } else {
-                R.drawable.ic_action_file_download to R.color.colorAccent
+                R.drawable.ic_action_file_download to R.color.m3_primary_container
             }
             toolOperation?.supportBackgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), value.second))

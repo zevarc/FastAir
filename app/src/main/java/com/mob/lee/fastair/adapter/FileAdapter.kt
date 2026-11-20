@@ -1,6 +1,5 @@
 package com.mob.lee.fastair.adapter
 
-import android.graphics.Color
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import com.mob.lee.fastair.R
@@ -39,9 +38,9 @@ class FileAdapter(val action: (Record)->Unit) : AppListAdapter<Record>(R.layout.
         val checked=Record.STATE_ORIGIN != record.state
         holder.check(R.id.item_file_selector, checked)
         val color = if (checked) {
-            ContextCompat.getColor(holder.itemView.context, R.color.material_grey_300)
+            ContextCompat.getColor(holder.itemView.context, R.color.m3_surface_container_high)
         } else {
-            Color.WHITE
+            ContextCompat.getColor(holder.itemView.context, R.color.m3_surface)
         }
         holder.itemView.setBackgroundColor(color)
     }

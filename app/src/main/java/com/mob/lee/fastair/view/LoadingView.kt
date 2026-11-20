@@ -33,7 +33,7 @@ class LoadingView : View {
 
     val mPaint: Paint by lazy {
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = ContextCompat.getColor(context, R.color.colorPrimary)
+            this.color = ContextCompat.getColor(context, R.color.m3_primary)
         }
     }
 
@@ -57,10 +57,8 @@ class LoadingView : View {
         setLayerType(LAYER_TYPE_SOFTWARE, mPaint)
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        canvas ?: return
 
         drawRain(canvas)
     }

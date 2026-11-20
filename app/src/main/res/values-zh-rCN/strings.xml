@@ -31,6 +31,8 @@
     <string name="transfer_success">文件传送成功</string>
     <string name="remove_group_error">移除组发生了错误</string>
     <string name="connect_success">恭喜你，连接成功!</string>
+    <string name="connecting">正在连接&#8230;</string>
+    <string name="connect_timeout">连接超时，请重试</string>
     <string name="auto_connect_success">已自动连接上次连接的设备!</string>
     <string name="failed_to_open">找不到合适的程序处理文件，文件打开失败</string>
     <string name="p2p_unsupport_error">很抱歉，该设备不支持Wi-Fi P2P服务，暂不能使用！</string>
@@ -42,6 +44,7 @@
     <string name="wram_tips">温馨提示</string>
     <string name="no_application_find">没有找到合适的应用来打开文件</string>
     <string name="no_permission_to_scan">没有足够的权限扫描设备文件信息，请打开权限后使用，这不会记录你的任何隐私信息！</string>
+    <string name="no_file_to_send">本次分享没有附带文件</string>
     <string name="discover_error">当前Wi-Fi处于关闭状态或设备不支持Wi-Fi直连</string>
     <string name="choose_download_path">选择文件接收路径</string>
     <string name="select_nothing">还没有选择文件哦，我不知道要删除什么</string>
@@ -53,7 +56,6 @@
     <string name="storage_not_ready">外部存储设备未准备好</string>
     <string name="server_runing">本地主机正在运行</string>
     <string name="server_stoped">本地主机已停止</string>
-    <string name="current_device_info">当前你的设备 名字 = %1$s,状态 = %2$s</string>
     <string name="notification_was_denied">Notifications are rejected and no transfer status is visible on the notification drawer</string>
 
     <string name="copy_content">复制内容</string>

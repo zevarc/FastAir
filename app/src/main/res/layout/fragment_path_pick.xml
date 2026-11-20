@@ -9,14 +9,14 @@
         android:id="@+id/pathPickTab"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
+        android:background="@color/m3_surface_container"
         app:tabTextAppearance="@style/TabTextAppearance"
-        app:tabIndicatorColor="@color/colorAccent"
-        app:tabTextColor="@android:color/white"
-        app:tabBackground="@color/colorPrimary"
+        app:tabIndicatorColor="@color/m3_tertiary"
+        app:tabTextColor="@color/m3_on_surface_variant"
+        app:tabBackground="@color/m3_surface_container"
         app:tabMode="scrollable"
         app:tabIndicatorHeight="@dimen/dp2"
-        app:tabSelectedTextColor="@color/colorAccent"/>
+        app:tabSelectedTextColor="@color/m3_on_surface"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/pathPickContent"

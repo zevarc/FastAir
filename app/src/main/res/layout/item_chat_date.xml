@@ -3,7 +3,7 @@
     android:layout_height="match_parent"
     android:paddingLeft="@dimen/dp16"
     android:paddingRight="@dimen/dp16"
-    android:background="@color/material_blue_grey_50">
+    android:background="@color/m3_surface">
 
     <TextView
         android:id="@+id/item_chat_date"
@@ -11,5 +11,5 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:textSize="@dimen/sp10"
-        android:textColor="@color/colorSecondaryText"/>
+        android:textColor="@color/m3_on_surface_variant"/>
 </LinearLayout>

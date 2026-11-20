@@ -18,7 +18,7 @@ class LoadView : View {
 
     val mPaint: Paint by lazy {
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = ContextCompat.getColor(context, R.color.colorPrimary)
+            this.color = ContextCompat.getColor(context, R.color.m3_primary)
         }
     }
     val mCircles=Array(mCircleCount){
@@ -56,7 +56,7 @@ class LoadView : View {
         }
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         val centerX = width / 2F
         val centerY = height / 2F
         if(mLastIndex<mCircleCount-1){
@@ -72,7 +72,7 @@ class LoadView : View {
             c.update()
             val x = centerX + c.x
             val y = centerY + c.y
-            canvas?.drawCircle(x, y, c.radius, mPaint)
+            canvas.drawCircle(x, y, c.radius, mPaint)
         }
         invalidate()
     }

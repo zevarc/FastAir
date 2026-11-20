@@ -6,6 +6,8 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
+import com.mob.lee.fastair.R
 
 /**
  * Created by Andy on 2017/8/31.
@@ -75,11 +77,8 @@ class CircleProgress : View {
         }
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (null == canvas) {
-            return
-        }
         when (state) {
             PROGRESS -> progress(canvas)
 
@@ -139,24 +138,18 @@ class CircleProgress : View {
     }
 
     private fun init() {
-        val attrs = intArrayOf(android.R.attr.colorPrimary, android.R.attr.colorAccent)
-        val typedArray = context.obtainStyledAttributes(attrs)
-        val primary = typedArray.getColor(0, Color.BLACK)
-        val accent = typedArray.getColor(1, Color.BLACK)
-
         mPaint = Paint()
         mPaint.flags = Paint.ANTI_ALIAS_FLAG
-        mPaint.color = primary
+        mPaint.color = ContextCompat.getColor(context, R.color.m3_primary)
         mPaint.style = Paint.Style.STROKE
         mPaint.strokeCap = Paint.Cap.ROUND
 
         mTextPaint = TextPaint()
         mTextPaint.flags = TextPaint.ANTI_ALIAS_FLAG
-        mTextPaint.color = accent
+        mTextPaint.color = ContextCompat.getColor(context, R.color.m3_on_surface_variant)
 
         mRectF = RectF(0F, 0F, 0F, 0F)
         mBounds = Rect(0, 0, 0, 0)
-        typedArray.recycle()
     }
 
     private fun progress(canvas: Canvas) {
@@ -168,7 +161,7 @@ class CircleProgress : View {
         canvas.drawText(content, x, y, mTextPaint)
 
         val color = mPaint.color
-        mPaint.color = Color.parseColor("#FFE0E0E0")
+        mPaint.color = ContextCompat.getColor(context, R.color.m3_surface_variant)
         canvas.drawCircle(half.toFloat(), half.toFloat(), half - mRectF.left, mPaint)
         mPaint.color = color
         canvas.drawArc(mRectF, -90F, progress * 360 / max, false, mPaint)

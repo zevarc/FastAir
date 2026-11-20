@@ -1,8 +1,7 @@
 package com.mob.lee.fastair.repository
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
+import android.media.MediaScannerConnection
 import android.provider.MediaStore
 import android.util.SparseArray
 import com.mob.lee.fastair.model.*
@@ -49,7 +48,7 @@ class StorageDataSource : DataSource {
             return send(list)
         }
 
-        val channel = Channel<Record>()
+        val channel = Channel<Record>(256)
         val category = categories()[position]
 
         scope.launch(Dispatchers.IO) {
@@ -114,8 +113,6 @@ class StorageDataSource : DataSource {
 
     fun updateStorage(context: Context?,path:String?){
         path ?: return
-        val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-        intent.data = Uri.fromFile(File(path))
-        context?.sendBroadcast(intent)
+        MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
     }
 }

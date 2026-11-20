@@ -25,6 +25,18 @@ open class AppListAdapter<D>(val layout: Int) : RecyclerView.Adapter<AppViewHold
         notifyDataSetChanged()
     }
 
+    /**
+     * Replace the whole dataset in one go. Used when the ViewModel publishes a
+     * full, already-sorted batch (initial scan, re-sort, select-all), where
+     * per-item insertions would rebuild the whole list repeatedly.
+     */
+    fun replaceAll(data: Collection<D>?) {
+        data ?: return
+        originData.clear()
+        originData.addAll(data)
+        notifyDataSetChanged()
+    }
+
     fun add(data: D?) {
         data ?: return
         if (!originData.contains(data)) {

@@ -1,15 +1,15 @@
 package com.mob.lee.fastair
 
 import android.content.Intent
-import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
-import com.mob.lee.fastair.p2p.failedReason
 import com.mob.lee.fastair.utils.errorToast
 import com.mob.lee.fastair.viewmodel.DeviceViewModel
 import com.mob.lee.fastair.viewmodel.HomeViewModel
+import com.mob.lee.fastair.viewmodel.P2pState
 
 /**
  * Created by Andy on 2017/6/2.
@@ -29,35 +29,42 @@ class ContainerActivity : AppCompatActivity() {
         val viewModel: DeviceViewModel by viewModels()
         viewModel.run {
             init(this@ContainerActivity)
-            discover(object : WifiP2pManager.ActionListener {
-                override fun onSuccess() {
+            p2pState.observe(this@ContainerActivity) {
+                if (P2pState.CONNECTED == it) {
+                    Log.i(TAG, "P2P group formed.")
                 }
-
-                override fun onFailure(reason: Int) {
-                    errorToast(failedReason(reason))
-                }
-            })
+            }
             connectState.observe(this@ContainerActivity) {
                 if (!it) {
-                    errorToast(R.string.disconnected)
-                    mNavController.popBackStack(R.id.homeFragment,false)
+                    // The Wi-Fi Direct group drops on screen-off and app switches and
+                    // re-forms on its own. Do not tear the UI down for a transient loss.
+                    Log.i(TAG, "P2P group is not formed.")
                 }
             }
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
 
     fun handleIntent(intent: Intent?) {
-        val data = intent?.clipData
-        if (null != data) {
-            val v: HomeViewModel by viewModels()
-            v.parseClipData(this, data).observe(this) {
+        intent ?: return
+        if (Intent.ACTION_SEND != intent.action && Intent.ACTION_SEND_MULTIPLE != intent.action) {
+            return
+        }
+        val v: HomeViewModel by viewModels()
+        v.parseSharedIntent(this, intent).observe(this) {
+            if (it.data ?: 0 > 0) {
                 mNavController.navigate(R.id.beforeFragment)
+            } else {
+                errorToast(R.string.no_file_to_send)
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "ContainerActivity"
     }
 }

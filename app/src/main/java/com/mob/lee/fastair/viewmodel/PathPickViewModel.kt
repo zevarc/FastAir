@@ -73,6 +73,6 @@ class PathPickViewModel : AppViewModel() {
             putString(key, currentPath?.absolutePath ?: value)
         }
         fragment.mParent?.successToast(fragment.getString(R.string.path_setting_success, currentPath?.getAbsolutePath()))
-        fragment.mParent?.onBackPressed()
+        fragment.mParent?.onBackPressedDispatcher?.onBackPressed()
     }
 }

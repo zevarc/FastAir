@@ -14,7 +14,8 @@ class StartRecordState(record: Record) : RecordState(record) {
     }
 }
 
-class TransmitState(val alreadyTransmited: Long, val duration: Long, record: Record) : RecordState(record) {
+class TransmitState(val alreadyTransmited: Long, val duration: Long, record: Record,
+                    val speedBytesPerSec: Long = -1L) : RecordState(record) {
     fun percentage(): Float = alreadyTransmited.toFloat() / record.size
 
     override fun toString(): String {

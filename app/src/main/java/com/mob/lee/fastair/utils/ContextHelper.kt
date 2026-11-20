@@ -1,9 +1,9 @@
 package com.mob.lee.fastair.utils
 
 import android.content.Context
-import android.graphics.Color
 import android.util.Log
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.room.Room
 import com.google.android.material.snackbar.Snackbar
 import com.mob.lee.fastair.ContainerActivity
@@ -23,8 +23,9 @@ fun Context.toast(message: String?, bg: Int) {
         return
     }
     if (this is ContainerActivity) {
+        val textColor = ContextCompat.getColor(this, R.color.m3_inverse_on_surface)
         Snackbar.make(findViewById(R.id.root_layout), message, Snackbar.LENGTH_SHORT).apply {
-            setTextColor(Color.WHITE)
+            setTextColor(textColor)
             view.setBackgroundResource(bg)
             show()
         }

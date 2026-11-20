@@ -1,10 +1,13 @@
 package com.mob.lee.fastair.viewmodel
 
 import android.Manifest
-import android.content.ClipData
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import androidx.core.content.IntentCompat
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.mob.lee.fastair.R
@@ -15,13 +18,14 @@ import com.mob.lee.fastair.repository.DataBaseDataSource
 import com.mob.lee.fastair.repository.StorageDataSource
 import com.mob.lee.fastair.utils.dialog
 import com.mob.lee.fastair.utils.errorToast
-import com.mob.lee.fastair.utils.urlToPath
+import com.mob.lee.fastair.utils.resolveShareUri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-import java.io.File
+import kotlinx.coroutines.withContext
 
 class HomeViewModel : AppViewModel() {
     var isDes = true
-    val recordLiveData = MutableLiveData<Record>()
+    val recordLiveData = MutableLiveData<List<Record>>()
     val hasSelectedLiveData = MutableLiveData<Boolean>()
     var position: Int = -1
     val records = ArrayList<Record>()
@@ -87,10 +91,14 @@ class HomeViewModel : AppViewModel() {
 
         val channel = dataSource.fetch(context, viewModelScope, position)
         currentChannel = channel
+        // Collect the whole folder first, then publish once. Streaming one item at a
+        // time onto the main thread turned scanning a large category into an O(n^2)
+        // series of RecyclerView insertions and caused the UI to hang.
         for (r in channel) {
-            next(r)
             records.add(r)
         }
+        currentChannel = null
+        next(records)
     }
 
 
@@ -101,18 +109,14 @@ class HomeViewModel : AppViewModel() {
             } else {
                 records.sortBy(selector)
             }
-            for (r in records) {
-                next(r)
-            }
+            next(records)
         }
 
 
     fun reverse() = async(recordLiveData) {
         isDes = !isDes
         records.reverse()
-        for (r in records) {
-            next(r)
-        }
+        next(records)
     }
 
     fun delete(context: Context?) = async(recordLiveData) {
@@ -127,7 +131,7 @@ class HomeViewModel : AppViewModel() {
     }
 
     fun update() = async(recordLiveData) {
-        records.forEach { next(it) }
+        next(records)
     }
 
     fun selectAll() = async(recordLiveData) {
@@ -141,8 +145,8 @@ class HomeViewModel : AppViewModel() {
                 selectedRecords.add(it)
                 Record.STATE_CHECK
             }
-            next(it)
         }
+        next(records)
     }
 
     fun toggleState(record: Record) {
@@ -185,28 +189,45 @@ class HomeViewModel : AppViewModel() {
         }
     }
 
-    fun parseClipData(context: Context?, clipData: ClipData) = asyncWithWrap<String> {
-        val records = ArrayList<Record>()
-        val itemCount = clipData.itemCount
-        for (i in 0 until itemCount) {
-            val item = clipData.getItemAt(i)
-            val uri = item.uri
-            val path = context?.urlToPath(uri)
-            if (null != path) {
-                val file = File(path)
-                val record = Record(
+    fun parseSharedIntent(context: Context?, intent: Intent): LiveData<DataWrap<Int>> =
+        asyncWithWrap {
+            val records = collectSharedRecords(context, intent)
+            database.recordDao(context) {
+                insert(records)
+                DataWrap.success(records.size)
+            }
+        }
+
+    /**
+     * Turn an incoming ACTION_SEND / ACTION_SEND_MULTIPLE intent into pending
+     * transfer records. File managers attach files through EXTRA_STREAM while
+     * some sources only set the ClipData, so both are read.
+     */
+    private suspend fun collectSharedRecords(context: Context?, intent: Intent): List<Record> =
+        withContext(Dispatchers.IO) {
+            if (null == context) return@withContext emptyList<Record>()
+            shareUris(intent).mapNotNull { uri ->
+                val file = context.resolveShareUri(uri) ?: return@mapNotNull null
+                Record(
                     System.currentTimeMillis(),
                     file.length(),
                     file.lastModified(),
                     file.absolutePath,
                     Record.STATE_WAIT
                 )
-                records.add(record)
             }
         }
-        database.recordDao(context) {
-            insert(records)
-            DataWrap.success("")
+
+    private fun shareUris(intent: Intent): List<Uri> {
+        val stream = when (intent.action) {
+            Intent.ACTION_SEND_MULTIPLE ->
+                IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+            else ->
+                listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
         }
+        if (!stream.isNullOrEmpty()) return stream
+        return intent.clipData?.let { clip ->
+            (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
+        } ?: emptyList()
     }
 }

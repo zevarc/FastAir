@@ -4,13 +4,8 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
-        <item name="android:buttonStyle">@style/AppButton</item>
-        <item name="android:colorControlHighlight">@color/colorPrimaryDark</item>
-        <item name="android:colorButtonNormal">@color/colorPrimary</item>
-        <item name="android:buttonBarPositiveButtonStyle">@style/AppDialogButton</item>
-        <item name="android:buttonBarNegativeButtonStyle">@style/AppDialogButton</item>
-        <item name="android:buttonBarNeutralButtonStyle">@style/AppDialogButton</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 </resources>

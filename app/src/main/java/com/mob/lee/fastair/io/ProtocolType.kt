@@ -37,5 +37,9 @@ class ProtocolType {
         /*分割符用*/
         @JvmStatic
         val E: Byte = 0x0
+
+        /*心跳，用于探测对端存活*/
+        @JvmStatic
+        val HEARTBEAT: Byte = 0x81.toByte()
     }
 }

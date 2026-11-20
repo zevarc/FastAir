@@ -13,7 +13,7 @@
         android:layout_marginLeft="@dimen/dp16"
         android:layout_marginRight="@dimen/dp16"
         android:gravity="center"
-        android:textColor="@color/color_red"
+        android:textColor="@color/m3_error"
         app:layout_constrainedWidth="true"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"

@@ -29,7 +29,7 @@ class ContentPickFragment : AppFragment() {
 
         viewModel.recordLiveData.observe {
             it ?: return@observe
-            adapter.add(it)
+            adapter.replaceAll(it)
         }
     }
 

@@ -31,6 +31,8 @@
     <string name="transfer_success">Успешная передача файла</string>
     <string name="remove_group_error">Произошла ошибка в группе удаления</string>
     <string name="connect_success">Поздравляем, подключение прошло успешно!</string>
+    <string name="connecting">Подключение&#8230;</string>
+    <string name="connect_timeout">Время подключения истекло, попробуйте ещё раз</string>
     <string name="auto_connect_success">Последнее подключенное устройство подключается автоматически!</string>
     <string name="failed_to_open">Не было найдено подходящей программы для обработки файла, и файл не удалось открыть</string>
     <string name="p2p_unsupport_error">К сожалению, это устройство не поддерживает услугу Wi-Fi P2P и временно не может быть использовано!</string>
@@ -42,6 +44,7 @@
     <string name="wram_tips">Теплые советы</string>
     <string name="no_application_find">Не найдено подходящего приложения для открытия файла</string>
     <string name="no_permission_to_scan">Недостаточно прав для сканирования информации о файле устройства, пожалуйста, используйте его после открытия разрешения, это не будет записывать вашу личную информацию!</string>
+    <string name="no_file_to_send">К этому общему доступу не прикреплён ни один файл</string>
     <string name="discover_error">Текущий Wi-Fi выключен или устройство не поддерживает прямое подключение Wi-Fi</string>
     <string name="choose_download_path">Выберите путь получения файла</string>
     <string name="select_nothing">Файлы еще не выбраны, я не знаю, что удалить</string>
@@ -55,7 +58,6 @@
     <string name="storage_not_ready">Ошибка чтения накопителя</string>
     <string name="server_runing">Сервер запущен</string>
     <string name="server_stoped">Сервер остановлен</string>
-    <string name="current_device_info">Текущее имя устройства = %1$s, статус = %2$s</string>
     <string name="notification_was_denied">Уведомления отклоняются, и статус передачи не отображается в ящике уведомлений.</string>
 
     <string name="copy_content">Копирование содержимого</string>
