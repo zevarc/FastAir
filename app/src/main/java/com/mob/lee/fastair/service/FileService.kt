@@ -39,9 +39,25 @@ class FileService : TransferService(), ProgressListener {
         nameOf = { getString(R.string.transfer_service) }
     )
 
+    /**
+     * The screen currently showing progress.
+     *
+     * Attached asynchronously by onServiceConnected, which can land after a
+     * drain has already started. A drain therefore must not depend on it for
+     * correctness — only for display.
+     */
+    @Volatile
     var mListener: ProgressListener? = null
 
-    private var lastId = 0L
+    /**
+     * Record currently being sent, so a re-entrant drain does not start it twice.
+     *
+     * The old code remembered a "last id" and skipped it forever, which wedged
+     * the queue whenever a completion failed to reach the database: the record
+     * stayed STATE_WAIT, was the only candidate, and was always skipped.
+     */
+    @Volatile
+    private var inFlight: Long? = null
     private var mLastDate = 0L
     private var lastTransmitTime = 0L
     private var lastTransmitBytes = 0L
@@ -119,29 +135,48 @@ class FileService : TransferService(), ProgressListener {
     }
 
     /**
-     * Sends the next queued record. Called on session start and after every
-     * finished transfer, so the queue drains by itself.
+     * Sends the next queued record, then the one after it.
+     *
+     * The record is written back to the database here rather than through the
+     * progress listener. The listener is attached asynchronously by whichever
+     * screen is open, so relying on it to persist the outcome meant a record
+     * could stay STATE_WAIT forever — and a stale WAIT row makes the next
+     * drain see the same candidate, which is how the queue used to wedge.
      */
     private suspend fun sendNext(session: Session) {
         if (active !== session) {
             return
         }
         val records = database.recordDao(this@FileService) { DataWrap.success(waitRecords()) }
-        if (records.isSuccess() && records.data.isNullOrEmpty()) {
-            return
+        Log.i(TAG, "drain: ${records.data?.size ?: -1} waiting")
+        val record = records.data.orEmpty().firstOrNull() ?: return
+
+        Log.i(TAG, "Write File $record")
+        val source = RecordSource(record, this)
+        val transfer = session.transfer(source)
+        val outcome = runCatching { transfer.await() }
+        outcome.onFailure { Log.e(TAG, "send failed", it) }
+
+        // Persist whatever happened before moving on, so this record can never
+        // be picked up again as a stale WAIT row.
+        persistSent(record)
+
+        if (active === session) {
+            sendNext(session)
         }
-        records.data?.firstOrNull { lastId != it.id }?.let { record ->
-            Log.i(TAG, "Write File $record")
-            lastId = record.id
-            val transfer = session.transfer(RecordSource(record, this))
-            runCatching { transfer.await() }
-                .onFailure { Log.e(TAG, "send failed", it) }
-            // Either way the queue moves on; a failure is recorded by the
-            // source itself and must not stall the remaining files. This runs
-            // inside drain(), so `sending` is still held.
-            if (active === session) {
-                sendNext(session)
-            }
+    }
+
+    /** Writes the outcome of a send back, independent of any UI being attached. */
+    private suspend fun persistSent(record: Record) {
+        // The source sets the terminal state as it closes. If close never ran
+        // (the transfer was torn down abruptly) the record would stay in
+        // STATE_TRANSPORT, which is neither resumable nor visible as a failure.
+        if (record.state == Record.STATE_TRANSPORT) {
+            record.state = Record.STATE_FAILED
+        }
+        database.recordDao(this@FileService) {
+            update(record)
+            DataWrap.success(null)
         }
     }
 

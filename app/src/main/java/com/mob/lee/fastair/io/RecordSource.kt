@@ -51,7 +51,7 @@ internal class RecordSource(
             listener?.invoke(StartRecordState(record))
         }
 
-        val buffer = ByteArray(minOf(maxBytes, CHUNK_SIZE))
+        val buffer = ByteArray(maxBytes.coerceAtMost(MAX_READ))
         streamOpened = true
         val count = stream.read(buffer)
         if (count <= 0) {
@@ -106,10 +106,12 @@ internal class RecordSource(
         const val PAYLOAD_TYPE = "fastair/file"
 
         /**
-         * Files are read a chunk at a time; 9 KiB matches the old FileWriter so
-         * progress callbacks arrive at the same cadence the UI expects.
+         * Upper bound on one read. The Core asks for 256 KiB; honouring it keeps
+         * the frame count (and therefore the per-frame cost on both ends) low.
+         * The old 9 KiB was chosen when every frame paid a flush and a progress
+         * update; that cost is gone, so this is only a safety cap.
          */
-        const val CHUNK_SIZE = 1024 * 9
+        const val MAX_READ = 256 * 1024
     }
 }
 

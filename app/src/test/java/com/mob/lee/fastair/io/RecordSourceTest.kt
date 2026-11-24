@@ -46,8 +46,8 @@ class RecordSourceTest {
 
         val collected = ArrayList<Byte>()
         while (true) {
-            val chunk = source.read(RecordSource.CHUNK_SIZE) ?: break
-            assertTrue("chunk must respect maxBytes", chunk.size <= RecordSource.CHUNK_SIZE)
+            val chunk = source.read(RecordSource.MAX_READ) ?: break
+            assertTrue("chunk must respect maxBytes", chunk.size <= RecordSource.MAX_READ)
             chunk.forEach { collected.add(it) }
         }
         source.close(TransferResult.Success(0))
@@ -77,7 +77,7 @@ class RecordSourceTest {
 
         // Unknown or zero totals are legitimate; the Core must not divide by it.
         assertEquals(null, source.totalBytes)
-        assertEquals(null, source.read(RecordSource.CHUNK_SIZE))
+        assertEquals(null, source.read(RecordSource.MAX_READ))
         source.close(TransferResult.Success(0))
         assertEquals(Record.STATE_SUCCESS, record.state)
     }
@@ -114,7 +114,7 @@ class RecordSourceTest {
         val source = RecordSource(missing)
 
         // Constructing the adapter must not throw; the Core decides when to read.
-        val failure = runCatching { source.read(RecordSource.CHUNK_SIZE) }.exceptionOrNull()
+        val failure = runCatching { source.read(RecordSource.MAX_READ) }.exceptionOrNull()
         assertTrue("expected the read to fail, got $failure", failure != null)
         // close() must still be safe to call after a failure.
         source.close(TransferResult.Success(0))
@@ -125,7 +125,7 @@ class RecordSourceTest {
         val record = recordOf(ByteArray(5000) { 9 })
         val source = RecordSource(record)
 
-        source.read(RecordSource.CHUNK_SIZE)
+        source.read(RecordSource.MAX_READ)
         source.close(TransferResult.Cancelled)
 
         assertEquals(Record.STATE_FAILED, record.state)
@@ -136,7 +136,7 @@ class RecordSourceTest {
         val record = recordOf(ByteArray(10))
         val source = RecordSource(record)
 
-        while (source.read(RecordSource.CHUNK_SIZE) != null) {
+        while (source.read(RecordSource.MAX_READ) != null) {
             // drain
         }
         source.close(TransferResult.Success(10))

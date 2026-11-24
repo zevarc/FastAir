@@ -58,6 +58,11 @@ abstract class TransferService : AppService() {
     private var sessionJob: kotlinx.coroutines.Job? = null
 
     private fun watchSession() {
+        // startService lands here on every call; a second collector would run
+        // onSessionReady twice and drain the queue twice.
+        if (sessionJob?.isActive == true) {
+            return
+        }
         sessionJob = launch {
             Connection.session.collect { current ->
                 if (current == null) {
@@ -111,6 +116,10 @@ abstract class TransferService : AppService() {
         val decision = WorkTrigger.decide(
             hasSession = current != null,
             isNewSession = false
+        )
+        Log.i(
+            TAG,
+            "$this work request from $reason, session=${current?.device?.id?.value ?: "none"}"
         )
         if (!decision.onWorkRequested || current == null) {
             return
