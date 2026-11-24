@@ -10,6 +10,7 @@ import com.mob.lee.fastair.model.Record
 import com.mob.lee.fastair.utils.createFile
 import kotlinx.coroutines.withContext
 import com.zevarc.zevhub.transfer.TransferDestination
+import java.io.BufferedOutputStream
 import java.io.FileOutputStream
 
 /**
@@ -27,11 +28,16 @@ internal class RecordDestination(
     private val listener: ProgressListener? = null
 ) : TransferDestination {
 
-    private var stream: FileOutputStream? = null
+    private var stream: BufferedOutputStream? = null
     private var received = 0L
     private var startTime = 0L
     private var record: Record? = null
     private var released = false
+
+    private companion object {
+        /** One flush per chunk is plenty; this holds a whole chunk. */
+        const val BUFFER_BYTES = 256 * 1024
+    }
 
     override suspend fun write(data: ByteArray) {
         // Runs on the session's dispatcher, which is Dispatchers.Main here.
@@ -56,6 +62,8 @@ internal class RecordDestination(
         }
         released = true
         withContext(FileIo) {
+            // close() flushes the buffer; runCatching keeps a broken disk from
+            // hiding the transfer result.
             runCatching { stream?.close() }
         }
         val to = record
@@ -73,7 +81,7 @@ internal class RecordDestination(
      * Creates the destination on the first chunk: the name is known up front,
      * but an empty file still needs a path even though no chunk ever arrives.
      */
-    private fun openStream(): FileOutputStream? {
+    private fun openStream(): BufferedOutputStream? {
         val name = String(metadataData, Charsets.UTF_8)
         startTime = System.currentTimeMillis()
         return try {
@@ -86,7 +94,10 @@ internal class RecordDestination(
                 state = Record.STATE_TRANSPORT,
                 duration = 0L
             )
-            val opened = file.outputStream()
+            // Buffered: every write otherwise becomes its own syscall straight
+            // to the page cache, and a 256 KiB chunk per call showed up as the
+            // dominant cost of receiving a file.
+            val opened = BufferedOutputStream(file.outputStream(), BUFFER_BYTES)
             stream = opened
             listener?.invoke(StartRecordState(record!!))
             opened

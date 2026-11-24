@@ -11,6 +11,7 @@ import com.zevarc.zevhub.transfer.TransferMetadata
 import com.zevarc.zevhub.transfer.TransferResult
 import com.zevarc.zevhub.transfer.TransferSource
 import java.io.File
+import java.io.BufferedInputStream
 import java.io.FileInputStream
 
 /**
@@ -37,7 +38,7 @@ internal class RecordSource(
 
     override val totalBytes: Long? = record.size.takeIf { it > 0 }
 
-    private val stream by lazy { FileInputStream(record.path) }
+    private val stream by lazy { BufferedInputStream(FileInputStream(record.path), BUFFER_BYTES) }
     private var streamOpened = false
     private var sent = 0L
     private var startTime = 0L
@@ -120,6 +121,9 @@ internal class RecordSource(
          * update; that cost is gone, so this is only a safety cap.
          */
         const val MAX_READ = 256 * 1024
+
+        /** Matches one chunk, so a read costs one disk access instead of many. */
+        const val BUFFER_BYTES = 256 * 1024
     }
 }
 

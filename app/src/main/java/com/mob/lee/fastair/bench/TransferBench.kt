@@ -56,15 +56,20 @@ object TransferBench {
         override val totalBytes: Long = length
         override val metadata = TransferMetadata(TYPE, ByteArray(0))
         private var sent = 0L
-        private val pattern = ByteArray(minOf(chunk, 64 * 1024)) { (it % 251).toByte() }
+        // Sized by the caller so a run can exercise a chosen hand-off size. The
+        // Core pulls with its own maxBytes, so this only caps what it may ask for.
+        private val pattern = ByteArray(chunk) { (it % 251).toByte() }
 
         override suspend fun read(maxBytes: Int): ByteArray? {
             val room = length - sent
             if (room <= 0) return null
-            val size = minOf(pattern.size.toLong(), room).toInt()
+            // Honour the Core's request, bounded by this source's own size.
+            val size = minOf(pattern.size, maxBytes).toLong().coerceAtMost(room).toInt()
             sent += size
             // A fresh array every time: the wire must never alias the pattern.
-            return pattern.copyOf(size)
+            // Reused when the size matches, to keep the benchmark from measuring
+            // the allocator instead of the link.
+            return if (size == pattern.size) pattern else pattern.copyOf(size)
         }
     }
 
