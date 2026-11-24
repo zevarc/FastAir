@@ -11,8 +11,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Locally published ZevHub SDK (./gradlew :zevhub:publishToMavenLocal).
-        mavenLocal()
+        // ZevHub SDK, built by JitPack from the zevarc/zevhub tag.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

@@ -70,7 +70,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.viewpager2)
     // ZevHub SDK, consumed as a published AAR rather than a source module.
-    implementation("com.zevarc:zevhub:0.1.0")
+    implementation("com.github.zevarc:zevhub:v0.1.0")
 
     ksp(libs.androidx.room.compiler)
 
