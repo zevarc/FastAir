@@ -6,7 +6,10 @@ import com.zevarc.zevhub.ZevHubFactory
 import com.zevarc.zevhub.device.Device
 import com.zevarc.zevhub.session.Session
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -29,6 +32,16 @@ object Connection {
 
     private var hub: ZevHub? = null
     private var scope: CoroutineScope? = null
+
+    /**
+     * The SDK's own scope.
+     *
+     * Its session pump, transfer senders and frame routers are long-running and
+     * do blocking-ish work; handing them a Service's Dispatchers.Main scope
+     * moves file writes onto the UI thread. Everything the library runs lives
+     * here instead, on IO, and only the app's own callbacks hop back to Main.
+     */
+    private var sdkScope: CoroutineScope? = null
     private var collector: Job? = null
     private var startJob: Job? = null
 
@@ -54,7 +67,9 @@ object Connection {
         started = true
         this.scope = scope
 
-        val instance = factory(scope)
+        val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        sdkScope = io
+        val instance = factory(io)
         hub = instance
         startJob = scope.launch {
             runCatching { instance.start() }
@@ -98,6 +113,8 @@ object Connection {
         startJob?.cancel()
         _session.value = null
         runCatching { hub?.close() }
+        sdkScope?.cancel()
+        sdkScope = null
         hub = null
         scope = null
         started = false

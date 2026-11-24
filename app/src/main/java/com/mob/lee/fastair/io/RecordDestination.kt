@@ -8,6 +8,8 @@ import com.mob.lee.fastair.io.state.speed
 import com.mob.lee.fastair.io.state.TransmitState
 import com.mob.lee.fastair.model.Record
 import com.mob.lee.fastair.utils.createFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.zevarc.zevhub.transfer.TransferDestination
 import java.io.FileOutputStream
 
@@ -33,6 +35,13 @@ internal class RecordDestination(
     private var released = false
 
     override suspend fun write(data: ByteArray) {
+        // Runs on the session's dispatcher, which is Dispatchers.Main here.
+        // Writing a file there freezes the UI and stalls every other feature
+        // sharing the session.
+        withContext(Dispatchers.IO) { writeChunk(data) }
+    }
+
+    private fun writeChunk(data: ByteArray) {
         val out = stream ?: openStream() ?: return
         out.write(data)
         received += data.size
@@ -47,7 +56,9 @@ internal class RecordDestination(
             return
         }
         released = true
-        runCatching { stream?.close() }
+        withContext(Dispatchers.IO) {
+            runCatching { stream?.close() }
+        }
         val to = record
         if (to == null) {
             return

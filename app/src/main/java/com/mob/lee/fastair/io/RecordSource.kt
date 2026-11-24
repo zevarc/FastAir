@@ -6,6 +6,8 @@ import com.mob.lee.fastair.io.state.StartRecordState
 import com.mob.lee.fastair.io.state.SuccessState
 import com.mob.lee.fastair.io.state.speed
 import com.mob.lee.fastair.io.state.TransmitState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.zevarc.zevhub.transfer.TransferMetadata
 import com.zevarc.zevhub.transfer.TransferResult
 import com.zevarc.zevhub.transfer.TransferSource
@@ -44,6 +46,13 @@ internal class RecordSource(
     private var released = false
 
     override suspend fun read(maxBytes: Int): ByteArray? {
+        // The Core calls this on whatever dispatcher the session was built with,
+        // which for this app is Dispatchers.Main. File IO has to be moved off it
+        // explicitly or every read blocks the UI.
+        return withContext(Dispatchers.IO) { readChunk(maxBytes) }
+    }
+
+    private fun readChunk(maxBytes: Int): ByteArray? {
         if (!announced) {
             announced = true
             startTime = System.currentTimeMillis()
