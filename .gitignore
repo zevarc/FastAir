@@ -57,21 +57,6 @@ freeline_project_description.json
 
 release/
 
-/node_modules/
-/public/build/
-
 .DS_Store
 
-.DS_Store
-node_modules
 /build
-/.svelte-kit
-/package
-.env
-.env.*
-!.env.example
-.vercel
-.output
-package-lock.json
-
-**/assets/app
