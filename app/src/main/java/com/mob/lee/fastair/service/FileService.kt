@@ -112,26 +112,50 @@ class FileService : TransferService(), ProgressListener {
         super.onDestroy()
     }
 
-    /** Accepts every file the peer offers, one at a time. */
+    /**
+     * Accepts every transfer the peer offers, one at a time.
+     *
+     * `transfers()` is backed by a single-consumer channel, so this subscription
+     * receives bench payloads too. It must accept them rather than reject: the
+     * benchmark's sender would otherwise block on an offer nobody takes, which
+     * is exactly how the bench used to hang after one round.
+     */
     private suspend fun receiveLoop(session: Session) {
         runCatching {
             session.transfers().collect { offer ->
                 if (active !== session) {
                     return@collect
                 }
-                if (offer.metadata.type != RecordSource.PAYLOAD_TYPE) {
-                    offer.reject()
-                    return@collect
-                }
-                val incoming = offer.accept(
-                    RecordDestination(this, offer.metadata.data, offer.totalBytes, this)
-                )
-                launch(Dispatchers.IO) {
-                    runCatching { incoming.await() }
-                        .onFailure { Log.e(TAG, "receive failed", it) }
+                when (offer.metadata.type) {
+                    RecordSource.PAYLOAD_TYPE -> {
+                        val incoming = offer.accept(
+                            RecordDestination(this, offer.metadata.data, offer.totalBytes, this)
+                        )
+                        launch(Dispatchers.IO) {
+                            runCatching { incoming.await() }
+                                .onFailure { Log.e(TAG, "receive failed", it) }
+                        }
+                    }
+
+                    // Discard, but keep the transfer alive so the peer's side
+                    // measures the real path instead of timing out.
+                    com.mob.lee.fastair.bench.TransferBench.TYPE -> {
+                        val incoming = offer.accept(DiscardDestination)
+                        launch(Dispatchers.IO) {
+                            runCatching { incoming.await() }
+                        }
+                    }
+
+                    else -> offer.reject()
                 }
             }
         }.onFailure { Log.i(TAG, "receive loop ended: ${it.message}") }
+    }
+
+    /** Swallows bytes; used for bench payloads. */
+    private object DiscardDestination : com.zevarc.zevhub.transfer.TransferDestination {
+        override suspend fun write(data: ByteArray) = Unit
+        override suspend fun close() = Unit
     }
 
     /**

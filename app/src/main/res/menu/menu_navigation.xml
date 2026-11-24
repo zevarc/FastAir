@@ -22,6 +22,11 @@
         android:icon="@drawable/ic_action_payment"/>
 
     <item
+        android:id="@+id/menu_bench"
+        android:title="@string/bench_title"
+        android:icon="@drawable/ic_baseline_devices"/>
+
+    <item
         android:id="@+id/menu_help"
         android:title="@string/help"
         android:icon="@drawable/ic_action_help"/>
@@ -35,8 +40,4 @@
         android:id="@+id/menu_setting"
         android:title="@string/settings"
         android:icon="@drawable/ic_action_setting"/>
-    <item
-        android:id="@+id/menu_bench"
-        android:title="@string/bench_title"
-        android:icon="@drawable/ic_baseline_devices"/>
 </menu>

@@ -105,7 +105,12 @@ class BenchViewModel : AppViewModel() {
     }
 
     /** A scope that outlives the io block but dies with the view model. */
+    /**
+     * Runs the bench off the UI thread. viewModelScope alone is
+     * Dispatchers.Main.immediate, which would put transfer progress collection
+     * and the timing loop on the thread that draws the screen.
+     */
     private val benchScope = kotlinx.coroutines.CoroutineScope(
-        viewModelScope.coroutineContext + kotlinx.coroutines.SupervisorJob()
+        kotlinx.coroutines.SupervisorJob() + Dispatchers.IO
     )
 }

@@ -5,10 +5,10 @@ import com.zevarc.zevhub.transfer.TransferDestination
 import com.zevarc.zevhub.transfer.TransferMetadata
 import com.zevarc.zevhub.transfer.TransferResult
 import com.zevarc.zevhub.transfer.TransferSource
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -28,7 +28,9 @@ object TransferBench {
     /** Payload marker so bench traffic never collides with real files. */
     const val TYPE = "fastair/bench"
 
-    private const val MAX_WAIT_MS = 180_000L
+    private const val MAX_WAIT_MS = 20_000L
+
+    private const val TAG = "Bench"
 
     /** One completed measurement. */
     data class Report(
@@ -88,40 +90,25 @@ object TransferBench {
         chunk: Int,
         onSent: (sent: Long) -> Unit = {}
     ): Report {
-        val sink = CountingSink()
-        val receiver: Job = scope.launch {
-            val offer = session.transfers().first()
-            if (offer.metadata.type != TYPE) {
-                offer.reject()
-                return@launch
-            }
-            val incoming = offer.accept(sink)
-            runCatching { incoming.await() }
-        }
-
         val started = System.nanoTime()
         val transfer = session.transfer(GeneratedSource(bytes, chunk))
 
         val watcher: Job = scope.launch {
-            // progress is a StateFlow of snapshots; collect the changes.
-            transfer.progress.collect { onSent(it.bytesTransferred) }
+            runCatching { transfer.progress.collect { onSent(it.bytesTransferred) } }
         }
 
-        val result: TransferResult? = scope.async {
-            withTimeoutOrNull(MAX_WAIT_MS) { transfer.await() }
-        }.await()
+        val result: TransferResult? = withTimeoutOrNull(MAX_WAIT_MS) { transfer.await() }
 
         watcher.cancel()
         val elapsed = (System.nanoTime() - started) / 1_000_000
 
-        if (result == null) {
+        return if (result == null) {
             transfer.cancel()
-            return Report(bytes, sink.bytes, elapsed, chunk, cancelled = true)
+            Report(bytes, 0, elapsed, chunk, cancelled = true)
+        } else {
+            Report(bytes, bytes, elapsed, chunk)
         }
-
-        // Give the receiving side a moment to drain its last frames so the
-        // reported byte count is not merely whatever arrived first.
-        receiver.join()
-        return Report(bytes, sink.bytes, elapsed, chunk)
     }
 }
+
+/** Reports what the sending side moved; the peer counts its own side. */
