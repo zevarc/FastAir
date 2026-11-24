@@ -124,4 +124,6 @@
     <string name="wechat" translatable="false">微信支付</string>
 
     <string name="dropbehavior" translatable="false">com.mob.lee.fastair.view.TranslationBehavior</string>
+    <string name="bench_title">Throughput bench</string>
+    <string name="bench_run">Run benchmark</string>
 </resources>

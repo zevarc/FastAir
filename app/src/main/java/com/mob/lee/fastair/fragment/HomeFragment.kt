@@ -195,6 +195,10 @@ class HomeFragment : AppFragment(), NavigationView.OnNavigationItemSelectedListe
                     navigation(R.id.discoverFragment)
                 }
             }
+            R.id.menu_bench -> {
+                navigation(R.id.benchFragment)
+            }
+
             R.id.menu_history -> {
                 navigation(R.id.historyFragment, args = {
                     putBoolean("isHistory", true)
