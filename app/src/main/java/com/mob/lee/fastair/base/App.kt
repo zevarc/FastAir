@@ -6,4 +6,10 @@ import android.app.Application
  * Created by Andy on 2017/6/1.
  */
 
-class App : Application()
+class App : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        ApplicationHolder.context = applicationContext
+    }
+}
