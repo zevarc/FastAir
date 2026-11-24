@@ -53,33 +53,6 @@ androidComponents {
     }
 }
 
-tasks.register<Delete>("clearAssets") {
-    val assetsDir = file("src/main/assets")
-    delete(
-        fileTree(assetsDir).matching {
-            exclude("about.html", "help.html")
-        },
-        file("$assetsDir/app")
-    )
-}
-
-tasks.register<Exec>("frontEnd") {
-    dependsOn("clearAssets")
-    workingDir("$rootDir/FastSvelte")
-    val npm = if (System.getProperty("os.name").lowercase().contains("windows")) "npm.cmd" else "npm"
-    commandLine(npm, "run", "build")
-}
-
-tasks.register<Copy>("toAssets") {
-    val assetsDir = file("src/main/assets")
-    dependsOn("frontEnd")
-    from("$rootDir/FastSvelte/build")
-    into(assetsDir)
-    doLast {
-        File(assetsDir, "_app").renameTo(File(assetsDir, "app"))
-    }
-}
-
 dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.constraintlayout)
@@ -96,11 +69,14 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.viewpager2)
+    // ZevHub SDK, consumed as a published AAR rather than a source module.
+    implementation("com.zevarc:zevhub:0.1.0")
 
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

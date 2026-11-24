@@ -1,44 +1,83 @@
 package com.mob.lee.fastair.service
 
-import android.app.NotificationManager
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import com.mob.lee.fastair.R
 import com.mob.lee.fastair.base.AppService
+import com.mob.lee.fastair.base.Connection
 import com.mob.lee.fastair.base.WifiLocks
-import com.mob.lee.fastair.io.ConnectionState
-import com.mob.lee.fastair.io.ProtocolByte
-import com.mob.lee.fastair.io.SocketService
-import com.mob.lee.fastair.io.Writer
 import com.mob.lee.fastair.service.Notification.Companion.channel
 import com.mob.lee.fastair.service.Notification.Companion.foreground
-import com.mob.lee.fastair.viewmodel.DeviceViewModel
+import com.zevarc.zevhub.session.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.nio.channels.SocketChannel
 
-abstract class TransferService : AppService(), SocketService.SocketStateListener {
-    abstract var port: Int
-    private var mSocket: SocketService? = null
+/**
+ * Base for the features that ride the single shared [Session].
+ *
+ * Everything about establishing a link now belongs to
+ * [com.mob.lee.fastair.base.Connection]; a service only reacts to the session
+ * appearing and disappearing and then does its own work on it. This replaced a
+ * ten-callback listener interface that mirrored the old socket implementation.
+ */
+abstract class TransferService : AppService() {
+
+    /** Fires once per established session. */
+    abstract suspend fun onSessionReady(session: Session)
+
+    /** Notification channel this feature keeps in the foreground, if any. */
+    open val foregroundChannel: ForegroundChannel? = null
+
+    /**
+     * Resolved lazily: `getString` is only valid once the service is attached,
+     * which happens after the constructor has run.
+     */
+    data class ForegroundChannel(
+        val id: String,
+        val code: Int,
+        private val nameOf: () -> String
+    ) {
+        val name: String get() = nameOf()
+    }
+
+    /**
+     * Watches the shared session. Re-collected on every emission so a reconnect
+     * starts this feature's work again on the new session.
+     */
+    private var sessionJob: kotlinx.coroutines.Job? = null
+
+    private fun watchSession() {
+        sessionJob = launch {
+            Connection.session.collect { current ->
+                if (current == null) {
+                    Log.i(TAG, "$this session gone")
+                    return@collect
+                }
+                Log.i(TAG, "$this session ready")
+                launch(Dispatchers.IO) {
+                    runCatching { onSessionReady(current) }
+                        .onFailure { Log.e(TAG, "$this session work failed", it) }
+                }
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder {
-        doAnotherWork(intent)
         return BinderImpl(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(TAG, "Start Transfer service intent = $intent")
-        mSocket?.let { doAnotherWork(intent) } ?: let {
-            val (host, isHost) = DeviceViewModel.unBundle(intent?.extras)
-            Log.i(TAG, "Start connect with host = $host, isHost = $isHost")
-            WifiLocks.acquire(this)
-            mSocket = SocketService().apply {
-                addListener(this@TransferService)
-                launch(Dispatchers.IO) {
-                    open(this, port, if (isHost) null else host)
-                }
+        Log.i(TAG, "Start $this")
+        // The radio must stay awake for the whole session, whichever feature
+        // happened to come up first.
+        WifiLocks.acquire(this)
+        Connection.start(this)
+        watchSession()
+        foregroundChannel?.let {
+            channel(it.id, it.name)
+            foreground(it.id, it.code) {
+                setContentTitle(getString(R.string.transfer_service))
             }
         }
         return super.onStartCommand(intent, flags, startId)
@@ -46,82 +85,11 @@ abstract class TransferService : AppService(), SocketService.SocketStateListener
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.i(TAG, "Transfer service has destroyed.")
-        mSocket?.removeListener(this)
-        mSocket?.close()
-        if (null != mSocket) {
-            WifiLocks.release()
-            mSocket = null
-        }
-    }
-    fun write(writer: Writer) {
-        launch(Dispatchers.IO) {
-            val accepted = mSocket?.write(writer) ?: false
-            if (!accepted) {
-                // The task can never reach the peer, so close its stream and let
-                // the record be reported as failed instead of hanging in transit.
-                Log.w(TAG, "Write task rejected, cancelling it.")
-                writer.cancel(IllegalStateException("not connected"))
-            }
-        }
-    }
-
-    open suspend fun onNewTask(intent: Intent?) {}
-
-    private fun doAnotherWork(intent: Intent?){
-        if (null != mSocket && true == mSocket?.isConnected) {
-            Log.i(TAG, "Start another work.")
-            launch(Dispatchers.IO) { onNewTask(intent) }
-        }
-    }
-
-    override fun onConnected(channel: SocketChannel,extra:Any?) {
-        channel(Notification.FILE_TRANSFER, getString(R.string.transfer_service), NotificationManager.IMPORTANCE_HIGH)
-        foreground(Notification.FILE_TRANSFER, Notification.FILE_TRANSFER_CODE) {
-            setContentTitle(getString(R.string.transfer_service))
-        }
-        launch(Dispatchers.IO) {
-            onNewTask(extra as Intent?)
-        }
-    }
-
-    override fun onDisconnected(exception: Exception?) {
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        mSocket?.removeListener(this)
-    }
-
-    override fun onStateChanged(state: ConnectionState) {
-        when (state) {
-            ConnectionState.RECONNECTING ->
-                Log.w(TAG, "Connection lost, reconnecting.")
-            ConnectionState.CONNECTED ->
-                Log.i(TAG, "Connection established.")
-            else -> {}
-        }
-    }
-
-    override fun onReadStart(channel: SocketChannel) {
-
-    }
-
-    override fun onReadFinished(channel: SocketChannel, data: ProtocolByte) {
-
-    }
-
-    override fun onReadError(channel: SocketChannel, exception: Exception) {
-        Log.e(TAG, "Transfer read error = ${exception.message}")
-    }
-
-    override fun onWriteStart(channel: SocketChannel, writer: Writer) {
-
-    }
-
-    override fun onWriteFinished(channel: SocketChannel, writer: Writer) {
-
-    }
-
-    override fun onWriteError(channel: SocketChannel, exception: Exception, writer: Writer?) {
-        Log.e(TAG, "Transfer write error = ${exception.message}")
+        Log.i(TAG, "$this has destroyed.")
+        sessionJob?.cancel()
+        // The runtime is shared, so tearing it down here would break whichever
+        // feature is still alive; the app owns that decision.
+        WifiLocks.release()
     }
 
     companion object {
