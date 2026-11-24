@@ -56,10 +56,39 @@ class FileService : TransferService(), ProgressListener {
     @Volatile
     private var active: Session? = null
 
+    /**
+     * Guards the queue drain. Binding plus startService both request work, and
+     * a transfer finishing requests more, so without this two drains would race
+     * and send the same record twice.
+     */
+    private val sending = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** True while a queue drain is in flight. Exposed for tests. */
+    internal val isDraining: Boolean get() = sending.get()
+
     override suspend fun onSessionReady(session: Session) {
         active = session
         launch { receiveLoop(session) }
-        launch { sendNext(session) }
+        launch { drain(session) }
+    }
+
+    override suspend fun onWorkRequested(session: Session) {
+        drain(session)
+    }
+
+    /** Starts a drain unless one is already in flight. */
+    internal suspend fun drain(session: Session) {
+        if (active !== session) {
+            return
+        }
+        if (!sending.compareAndSet(false, true)) {
+            return
+        }
+        try {
+            sendNext(session)
+        } finally {
+            sending.set(false)
+        }
     }
 
     override fun onDestroy() {
@@ -108,9 +137,10 @@ class FileService : TransferService(), ProgressListener {
             runCatching { transfer.await() }
                 .onFailure { Log.e(TAG, "send failed", it) }
             // Either way the queue moves on; a failure is recorded by the
-            // source itself and must not stall the remaining files.
+            // source itself and must not stall the remaining files. This runs
+            // inside drain(), so `sending` is still held.
             if (active === session) {
-                launch { sendNext(session) }
+                sendNext(session)
             }
         }
     }

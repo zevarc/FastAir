@@ -26,6 +26,16 @@ abstract class TransferService : AppService() {
     /** Fires once per established session. */
     abstract suspend fun onSessionReady(session: Session)
 
+    /**
+     * Fires each time the service is started or bound while a session already
+     * exists.
+     *
+     * A session is published once, so features that queue work later — sending
+     * a second file after the first finished — would otherwise never be woken:
+     * onSessionReady has already run and there is no further emission.
+     */
+    open suspend fun onWorkRequested(session: Session) {}
+
     /** Notification channel this feature keeps in the foreground, if any. */
     open val foregroundChannel: ForegroundChannel? = null
 
@@ -55,15 +65,21 @@ abstract class TransferService : AppService() {
                     return@collect
                 }
                 Log.i(TAG, "$this session ready")
-                launch(Dispatchers.IO) {
-                    runCatching { onSessionReady(current) }
-                        .onFailure { Log.e(TAG, "$this session work failed", it) }
+                val decision = WorkTrigger.decide(hasSession = true, isNewSession = true)
+                if (decision.onSessionReady) {
+                    launch(Dispatchers.IO) {
+                        runCatching { onSessionReady(current) }
+                            .onFailure { Log.e(TAG, "$this session work failed", it) }
+                    }
                 }
             }
         }
     }
 
     override fun onBind(intent: Intent?): IBinder {
+        // Binding happens when the user opens the feature's screen, which is how
+        // a second batch of work arrives after the first one finished.
+        requestWork("onBind")
         return BinderImpl(this)
     }
 
@@ -74,6 +90,9 @@ abstract class TransferService : AppService() {
         WifiLocks.acquire(this)
         Connection.start(this)
         watchSession()
+        // `startService` also lands here when the service is already running,
+        // which is exactly the "send another file" case.
+        requestWork("onStartCommand")
         foregroundChannel?.let {
             channel(it.id, it.name)
             foreground(it.id, it.code) {
@@ -81,6 +100,25 @@ abstract class TransferService : AppService() {
             }
         }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    /**
+     * Re-checks for work against the live session. See [WorkTrigger] for why a
+     * plain "session appeared" callback is not enough.
+     */
+    private fun requestWork(reason: String) {
+        val current = Connection.session.value
+        val decision = WorkTrigger.decide(
+            hasSession = current != null,
+            isNewSession = false
+        )
+        if (!decision.onWorkRequested || current == null) {
+            return
+        }
+        launch(Dispatchers.IO) {
+            runCatching { onWorkRequested(current) }
+                .onFailure { Log.e(TAG, "$this work request ($reason) failed", it) }
+        }
     }
 
     override fun onDestroy() {
